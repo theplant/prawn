@@ -119,8 +119,10 @@ end
 
 describe "Text::Formatted::Box with :fallback_fonts option that includes" +
   "a Chinese font and set of Chinese glyphs not in the current font" do
-  it "should change the font to the Chinese font for the Chinese glyphs" do
+  before(:each) do
     create_pdf
+  end
+  it "should change the font to the Chinese font for the Chinese glyphs" do
     file = "#{Prawn::DATADIR}/fonts/gkai00mp.ttf"
     @pdf.font_families["Kai"] = {
       :normal => { :file => file, :font => "Kai" }
@@ -142,6 +144,21 @@ describe "Text::Formatted::Box with :fallback_fonts option that includes" +
     text.strings[1].should == "你好"
     text.strings[2].should == "再见"
     text.strings[3].should == "goodbye"
+  end
+  it "should retain the style for the font" do
+    file = "#{Prawn::DATADIR}/fonts/gkai00mp.ttf"
+    @pdf.font_families["Kai"] = {
+      :normal => { :file => file, :font => "Kai" }
+    }
+    formatted_text = [{ :text => "hello你好" }]
+
+    @pdf.formatted_text_box(formatted_text, :style => :italic, :fallback_fonts => ["Kai"])
+
+    text = PDF::Inspector::Text.analyze(@pdf.render)
+
+    fonts_used = text.font_settings.map { |e| e[:name] }
+    fonts_used[0].should == :"Helvetica-Oblique"
+    fonts_used[1].to_s.should =~ /GBZenKai-Medium/
   end
 end
 

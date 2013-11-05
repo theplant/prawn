@@ -149,7 +149,7 @@ module Prawn
         # Example (see Prawn::Text::Core::Formatted::Wrap for what is required
         # of the wrap method if you want to override the default wrapping
         # algorithm):
-        # 
+        #
         #
         #   module MyWrap
         #
@@ -289,7 +289,7 @@ module Prawn
         end
 
         # The height actually used during the previous <tt>render</tt>
-        # 
+        #
         def height
           return 0 if @baseline_y.nil? || @descender.nil?
           (@baseline_y - @descender).abs
@@ -385,7 +385,8 @@ module Prawn
 
           original_font = @document.font.family
           fragment_font = hash[:font] || original_font
-          @document.font(fragment_font)
+          style = style_for_font(@document.font.family, @document.font.name) || :normal
+          @document.font(fragment_font, :style => style)
 
           fallback_fonts = @fallback_fonts.dup
           # always default back to the current font if the glyph is missing from
@@ -393,25 +394,33 @@ module Prawn
           fallback_fonts << fragment_font
 
           hash[:text].unicode_characters do |char|
-            @document.font(fragment_font)
-            font_glyph_pairs << [find_font_for_this_glyph(char,
-                                                          @document.font.family,
-                                                          fallback_fonts.dup),
-                                 char]
+            @document.font(fragment_font, :style => style)
+            font = find_font_for_this_glyph(char,
+                                            @document.font.family,
+                                            fallback_fonts.dup,
+                                            style)
+            font_glyph_pairs << [font, char]
           end
 
-          @document.font(original_font)
+          @document.font(original_font, :style => style)
 
           form_fragments_from_like_font_glyph_pairs(font_glyph_pairs, hash)
         end
 
-        def find_font_for_this_glyph(char, current_font, fallback_fonts)
+        def style_for_font family, name
+          opts = @document.font_families[family].invert.detect { |name_or_hash, style|
+            name == (Hash === name_or_hash ? name_or_hash[:font] : name_or_hash)
+          }
+          opts && opts.last
+        end
+
+        def find_font_for_this_glyph(char, current_font, fallback_fonts, style)
           if fallback_fonts.length == 0 || @document.font.glyph_present?(char)
-            current_font
+            @document.font.name
           else
             current_font = fallback_fonts.shift
-            @document.font(current_font)
-            find_font_for_this_glyph(char, @document.font.family, fallback_fonts)
+            @document.font(current_font, :style => style) rescue @document.font(current_font, style: :normal)
+            find_font_for_this_glyph(char, @document.font.name, fallback_fonts, style)
           end
         end
 
