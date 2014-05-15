@@ -51,6 +51,7 @@ module Prawn
         @columns = options[:columns] || 3
         @spacer  = options[:spacer]  || @document.font_size
         @current_column = 0
+        @reflow_margins = options[:reflow_margins]
       end
 
       # The column width, not the width of the whole box,
@@ -103,6 +104,16 @@ module Prawn
         @current_column = (@current_column + 1) % @columns
         @document.y = @y
         if 0 == @current_column
+
+          if @reflow_margins
+            p = @parent
+            while p.parent
+              p = p.parent
+            end
+
+            @y = p.absolute_top
+          end
+
           @document.start_new_page
         end
       end
